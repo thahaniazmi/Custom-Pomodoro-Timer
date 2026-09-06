@@ -375,6 +375,14 @@
               <div id="countryDropdownList" class="country-dropdown-list" style="display: none;"></div>
             </div>
 
+            <div class="settings-item" style="margin-top: 10px; padding: 6px 0;">
+              <span class="settings-label" style="font-size: 12px;">🏆 Show me on Leaderboard</span>
+              <label class="toggle-switch">
+                <input type="checkbox" id="signupPublicLbToggle" checked>
+                <span class="toggle-slider"></span>
+              </label>
+            </div>
+
             <!-- OTP CODE STEP -->
             <div id="otpStepContainer" style="display: none; margin-top: 10px; padding: 10px; background: var(--panel); border: 1px dashed var(--focus-badge-border); border-radius: 8px;">
               <span class="auth-label" style="color: var(--focus);">📧 6-Digit Email Verification Code</span>
@@ -389,11 +397,6 @@
               <span>✉️</span> Send Email Verification Code
             </button>
           </div>
-
-          <div class="settings-divider" style="margin: 8px 0;"></div>
-          <button type="button" class="account-btn" id="googleSignInBtn">
-            <span>🌐</span> Quick Sign In with Google
-          </button>
         </div>
 
         <div id="authSignedInView" class="account-btn-group" style="display: none;">
