@@ -1061,70 +1061,131 @@ body.light-theme .color-picker-row .color-circle.active {
   background: var(--line);
   border-radius: 4px;
 }
+.lb-row,
 .lb-item {
+  display: grid;
+  grid-template-columns: 24px 22px 1fr auto;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 12px;
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 10px;
+  transition: background 0.15s ease;
+}
+.lb-row:hover,
+.lb-item:hover {
+  background: rgba(255, 255, 255, 0.03);
+}
+
+/* Only Row #1 gets a highlighted card background & raised surface */
+.lb-row.rank-1 {
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+}
+.lb-row.rank-1:hover {
+  background: rgba(255, 255, 255, 0.06);
+}
+
+/* Current user highlight (tasteful, non-competing) */
+.lb-row.is-user,
+.lb-item.is-user {
+  background: rgba(192, 132, 252, 0.06) !important;
+  border: 1px solid rgba(192, 132, 252, 0.22) !important;
+}
+.lb-row.is-user:hover {
+  background: rgba(192, 132, 252, 0.09) !important;
+}
+
+/* Rank column - Plain consistent gray numerals */
+.lb-rank {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-dim);
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+  width: 24px;
+}
+.lb-row.rank-1 .lb-rank {
+  font-weight: 700;
+  color: var(--text);
+}
+
+/* Flag column */
+.lb-flag,
+.lb-country-flag {
+  font-size: 15px;
+  line-height: 1;
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  padding: 8px 12px;
-  background: linear-gradient(135deg, rgba(255, 255, 255, 0.02) 0%, rgba(255, 255, 255, 0.005) 100%);
-  border: 1px solid var(--line);
-  border-radius: 12px;
-  font-size: 12px;
-  transition: transform 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
+  justify-content: center;
+  user-select: none;
 }
-.lb-item:hover {
-  border-color: var(--focus-badge-border);
-  transform: translateY(-1px);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
-}
-.lb-item.is-user {
-  background: var(--focus-dim);
-  border-color: var(--focus);
-  box-shadow: 0 0 12px var(--focus-glow);
-}
-.lb-rank {
-  font-weight: 800;
-  width: 28px;
+
+/* Name column - First names only, clean typography hierarchy */
+.lb-name {
   font-size: 13px;
-  flex-shrink: 0;
-  text-align: center;
+  font-weight: 400;
+  color: var(--text-dim);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  letter-spacing: 0.01em;
 }
+.lb-row.rank-1 .lb-name {
+  font-weight: 600;
+  color: var(--text);
+}
+.lb-row.is-user .lb-name {
+  color: var(--text);
+  font-weight: 500;
+}
+
+/* Legacy fallback */
 .lb-user {
   display: flex;
   align-items: center;
   gap: 6px;
-  flex-grow: 1;
   overflow: hidden;
 }
-.lb-country-flag {
-  font-size: 14px;
-  line-height: 1;
-  flex-shrink: 0;
-}
-.lb-name {
-  font-weight: 600;
+
+/* Meta column: stacked time & muted secondary streak */
+.lb-meta {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  justify-content: center;
+  gap: 2px;
   white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  color: var(--text);
-  font-size: 12px;
 }
-.lb-badge {
-  font-size: 9.5px;
-  padding: 1px 6px;
-  border-radius: 999px;
-  background: rgba(255, 255, 255, 0.08);
-  color: var(--text-dim);
-  font-weight: 600;
-  flex-shrink: 0;
-}
+
+/* Time: the single clear anchor per row */
 .lb-time {
+  font-size: 12.5px;
+  font-weight: 500;
+  color: var(--text-dim);
+  font-variant-numeric: tabular-nums;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  line-height: 1.2;
+}
+.lb-row.rank-1 .lb-time {
   font-weight: 700;
   color: var(--focus);
-  font-size: 11.5px;
-  font-family: "SF Mono", "Courier New", monospace;
-  white-space: nowrap;
-  margin-left: 8px;
+}
+.lb-row.is-user .lb-time {
+  color: var(--focus);
+  font-weight: 600;
+}
+
+/* Streak: quiet, small, secondary */
+.lb-streak {
+  font-size: 10.5px;
+  font-weight: 400;
+  color: var(--text-dim);
+  opacity: 0.65;
+  line-height: 1.2;
 }
 
 .lb-show-more-btn {
@@ -1288,6 +1349,67 @@ body.light-theme .color-picker-row .color-circle.active {
   font-family: inherit;
   transition: border-color 0.15s ease;
 }
+.country-combobox-wrap {
+  position: relative;
+  width: 100%;
+}
+.country-search-input {
+  width: 100%;
+  padding-right: 28px !important;
+  cursor: text;
+}
+.country-combobox-arrow {
+  position: absolute;
+  right: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--text-dim);
+  pointer-events: none;
+  font-size: 10px;
+}
+.country-dropdown-list {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  width: 100%;
+  max-height: 160px;
+  overflow-y: auto;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  z-index: 1300;
+  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.65);
+  display: flex;
+  flex-direction: column;
+}
+.country-dropdown-list::-webkit-scrollbar {
+  width: 4px;
+}
+.country-dropdown-list::-webkit-scrollbar-thumb {
+  background: var(--line);
+  border-radius: 4px;
+}
+.country-dropdown-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 10px;
+  font-size: 12px;
+  color: var(--text);
+  cursor: pointer;
+  transition: background 0.12s ease;
+}
+.country-dropdown-item:hover,
+.country-dropdown-item.active {
+  background: var(--btn-hover);
+  color: var(--focus);
+}
+.country-dropdown-empty {
+  padding: 8px 10px;
+  font-size: 11px;
+  color: var(--text-dim);
+  text-align: center;
+}
 .auth-input:focus,
 .country-select:focus {
   border-color: var(--focus);
@@ -1318,6 +1440,38 @@ body.light-theme .color-picker-row .color-circle.active {
   cursor: pointer;
   padding: 0 4px;
   text-decoration: underline;
+}
+
+.anon-name-pill {
+  flex: 1;
+  padding: 8px 10px;
+  background: var(--bg);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  color: var(--text);
+  font-size: 11.5px;
+  font-weight: 600;
+  cursor: pointer;
+  text-align: center;
+  transition: all 0.15s ease;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+}
+.anon-name-pill:hover {
+  border-color: var(--focus);
+  background: var(--btn-hover);
+}
+.anon-name-pill.active {
+  background: var(--focus-dim);
+  border-color: var(--focus);
+  color: var(--focus);
+  font-weight: 700;
+  box-shadow: 0 0 8px var(--focus-glow);
 }
 
 /* Account & Privacy Styling */

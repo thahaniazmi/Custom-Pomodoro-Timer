@@ -194,16 +194,7 @@
         </div>
       </div>
 
-      <div class="settings-divider"></div>
-      <div class="settings-section-title">Timer Automation</div>
 
-      <div class="settings-item">
-        <span class="settings-label">⚡ Auto-start Focus</span>
-        <label class="toggle-switch">
-          <input type="checkbox" id="toggleAutoStartFocusSetting">
-          <span class="toggle-slider"></span>
-        </label>
-      </div>
 
       <div class="settings-divider"></div>
       <div class="settings-section-title">Modes & Tools</div>
@@ -340,25 +331,14 @@
               <label class="auth-label" for="signupPasswordInput">Password</label>
               <input type="password" id="signupPasswordInput" class="auth-input" placeholder="At least 6 characters">
             </div>
-            <div class="auth-input-group" style="margin-top: 6px;">
-              <label class="auth-label" for="signupCountrySelect">Country</label>
-              <select id="signupCountrySelect" class="country-select">
-                <option value="🇺🇸 United States">🇺🇸 United States</option>
-                <option value="🇨🇦 Canada">🇨🇦 Canada</option>
-                <option value="🇬🇧 United Kingdom">🇬🇧 United Kingdom</option>
-                <option value="🇮🇳 India">🇮🇳 India</option>
-                <option value="🇩🇪 Germany">🇩🇪 Germany</option>
-                <option value="🇫🇷 France">🇫🇷 France</option>
-                <option value="🇯🇵 Japan">🇯🇵 Japan</option>
-                <option value="🇦🇺 Australia">🇦🇺 Australia</option>
-                <option value="🇧🇷 Brazil">🇧🇷 Brazil</option>
-                <option value="🇪🇸 Spain">🇪🇸 Spain</option>
-                <option value="🇮🇹 Italy">🇮🇹 Italy</option>
-                <option value="🇳🇱 Netherlands">🇳🇱 Netherlands</option>
-                <option value="🇸🇬 Singapore">🇸🇬 Singapore</option>
-                <option value="🇰🇷 South Korea">🇰🇷 South Korea</option>
-                <option value="🇲🇽 Mexico">🇲🇽 Mexico</option>
-              </select>
+            <div class="auth-input-group" style="margin-top: 6px; position: relative;">
+              <label class="auth-label" for="signupCountryInput">Country</label>
+              <div class="country-combobox-wrap">
+                <input type="text" id="signupCountryInput" class="auth-input country-search-input" placeholder="Type country... (e.g. United States, India)" autocomplete="off">
+                <span class="country-combobox-arrow">▾</span>
+              </div>
+              <input type="hidden" id="signupCountryHidden" value="🇺🇸 United States">
+              <div id="countryDropdownList" class="country-dropdown-list" style="display: none;"></div>
             </div>
 
             <!-- OTP CODE STEP -->
@@ -411,6 +391,18 @@
           <input type="checkbox" id="toggleAnonStatsSetting">
           <span class="toggle-slider"></span>
         </label>
+      </div>
+
+      <div id="anonNameChooserBox" style="margin-top: 8px; padding: 10px 12px; background: var(--panel); border: 1px solid var(--line); border-radius: 10px;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+          <span class="auth-label" style="font-size: 10px; color: var(--text-dim);">🎭 Silly Anonymous Leaderboard Alias</span>
+          <button type="button" id="rollAnonNamesBtn" class="settings-btn-action" style="font-size: 9.5px; padding: 2px 6px;">🎲 Roll 2 New</button>
+        </div>
+        <p style="font-size: 10.5px; color: var(--text-dim); margin: 0 0 8px;">Random silly names for your anonymous leaderboard identity:</p>
+        <div style="display: flex; gap: 8px;" id="anonNameOptionsWrap">
+          <button type="button" class="anon-name-pill active" id="anonOpt1">🥔 Chonky Potato</button>
+          <button type="button" class="anon-name-pill" id="anonOpt2">🧇 Caffeinated Waffle</button>
+        </div>
       </div>
 
       <div class="settings-divider"></div>

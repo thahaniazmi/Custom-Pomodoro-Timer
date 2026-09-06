@@ -1,0 +1,17 @@
+# Environment Variables & Secrets
+.env
+.env.local
+.env.*.local
+
+# Node & Dependencies
+node_modules/
+npm-debug.log*
+
+# Cloudflare Wrangler Build Cache
+.wrangler/
+
+# OS & Editor Files
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/

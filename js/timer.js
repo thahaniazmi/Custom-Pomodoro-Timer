@@ -7,8 +7,11 @@ var soundEnabled = localStorage.getItem('pomodoro_sound_enabled') !== 'false';
 var ttsEnabled = localStorage.getItem('pomodoro_tts_enabled') === 'true';
 var pauseOnClose = true; // Tab close always pauses timer (bug fix)
 var autoStartBreaks = false; // Breaks never auto-start to prevent cheating (bug fix)
-try { localStorage.removeItem('pomodoro_autostart_breaks'); } catch (e) {}
-var autoStartFocus = localStorage.getItem('pomodoro_autostart_focus') === 'true';
+var autoStartFocus = false; // Focus never auto-starts to prevent cheating (bug fix)
+try {
+  localStorage.removeItem('pomodoro_autostart_breaks');
+  localStorage.removeItem('pomodoro_autostart_focus');
+} catch (e) {}
 
 function buildPlan(startMinutes, focusMin, shortBreakMin) {
   var plan = [];
@@ -450,7 +453,6 @@ function openSettings() {
   var toggleToolsSetting = document.getElementById('toggleToolsSetting');
   var toggleSoundSetting = document.getElementById('toggleSoundSetting');
   var toggleTtsSetting = document.getElementById('toggleTtsSetting');
-  var toggleAutoStartFocusSetting = document.getElementById('toggleAutoStartFocusSetting');
   var togglePublicLbSetting = document.getElementById('togglePublicLbSetting');
   var toggleAnonStatsSetting = document.getElementById('toggleAnonStatsSetting');
 
@@ -475,7 +477,6 @@ function openSettings() {
     if (toggleToolsSetting && toolsPanel) toggleToolsSetting.checked = toolsPanel.style.display !== 'none';
     if (toggleSoundSetting) toggleSoundSetting.checked = soundEnabled;
     if (toggleTtsSetting) toggleTtsSetting.checked = ttsEnabled;
-    if (toggleAutoStartFocusSetting) toggleAutoStartFocusSetting.checked = autoStartFocus;
     if (togglePublicLbSetting) togglePublicLbSetting.checked = (typeof publicLeaderboardEnabled !== 'undefined' ? publicLeaderboardEnabled : true);
     if (toggleAnonStatsSetting) toggleAnonStatsSetting.checked = (typeof anonStatsEnabled !== 'undefined' ? anonStatsEnabled : false);
   }
@@ -592,7 +593,7 @@ function advance(announce) {
       if (typeof triggerCelebration === 'function') triggerCelebration(pickRandom(breakDoneCelebrations));
     }
     if (typeof beep === 'function') beep();
-    var ttsText = p.type === 'focus' ? (autoStartFocus ? 'Focus session ' + parseInt(p.num, 10) + ', Begins!' : 'Break finished! Ready to focus.') : 'Focus completed! Time for a break.';
+    var ttsText = p.type === 'focus' ? 'Break finished! Ready to focus.' : 'Focus completed! Time for a break.';
     if (typeof speak === 'function') speak(ttsText);
 
     var msg = p.type === 'focus' ? 'Ready to focus' : 'Break time';
@@ -600,19 +601,9 @@ function advance(announce) {
   }
 
   var playPauseBtn = document.getElementById('playPauseBtn');
-  var shouldAutoStart = (p.type === 'focus' && autoStartFocus); // Breaks never auto-start to prevent cheating (bug fix)
-
-  if (shouldAutoStart) {
-    running = true;
-    if (playPauseBtn) playPauseBtn.textContent = 'Pause';
-    clearInterval(timerId);
-    timerId = setInterval(tick, 1000);
-    if (p.type === 'focus' && typeof startAmbientAudio === 'function') startAmbientAudio();
-  } else {
-    running = false;
-    if (playPauseBtn) playPauseBtn.textContent = p.type === 'break' ? 'Start Break' : 'Start Focus';
-    if (typeof stopAmbientAudio === 'function') stopAmbientAudio();
-  }
+  running = false;
+  if (playPauseBtn) playPauseBtn.textContent = p.type === 'break' ? 'Start Break' : 'Start Focus';
+  if (typeof stopAmbientAudio === 'function') stopAmbientAudio();
   saveSessionState();
   drawPipFrame();
 }
@@ -726,14 +717,9 @@ function restoreSessionState() {
           addFocusSeconds(plan[index].duration * 60);
         }
         index++;
-        var nextType = plan[index] ? plan[index].type : 'focus';
-        var canAuto = (nextType === 'focus' && autoStartFocus); // Breaks never auto-start to prevent cheating (bug fix)
-        if (!canAuto) {
-          diffSecs = plan[index].duration * 60;
-          running = false;
-          break;
-        }
-        diffSecs += plan[index].duration * 60;
+        diffSecs = plan[index].duration * 60;
+        running = false;
+        break;
       }
 
       if (running && diffSecs > 0) {
@@ -1177,14 +1163,6 @@ document.addEventListener('DOMContentLoaded', function() {
     });
   }
 
-  var toggleAutoStartFocusSetting = document.getElementById('toggleAutoStartFocusSetting');
-  if (toggleAutoStartFocusSetting) {
-    toggleAutoStartFocusSetting.checked = autoStartFocus;
-    toggleAutoStartFocusSetting.addEventListener('change', function() {
-      autoStartFocus = toggleAutoStartFocusSetting.checked;
-      localStorage.setItem('pomodoro_autostart_focus', autoStartFocus);
-    });
-  }
 
   // PiP Button Listener
   if (pipBtn) pipBtn.addEventListener('click', togglePip);
