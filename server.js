@@ -126,6 +126,28 @@ const server = http.createServer(async (req, res) => {
     return;
   }
 
+  // Local Dev In-Memory Leaderboard & Sync Handlers
+  if (req.method === 'POST' && req.url === '/api/sync') {
+    let body = '';
+    req.on('data', chunk => { body += chunk; });
+    req.on('end', () => {
+      try {
+        res.writeHead(200, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ success: true, syncedAt: Date.now() }));
+      } catch (e) {
+        res.writeHead(400, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ error: 'Invalid JSON' }));
+      }
+    });
+    return;
+  }
+
+  if (req.method === 'GET' && req.url.startsWith('/api/leaderboard')) {
+    res.writeHead(200, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify({ leaderboard: [] }));
+    return;
+  }
+
   // Static File Serving
   let reqPath = decodeURIComponent(req.url.split('?')[0]);
   if (reqPath === '/' || reqPath === '') {

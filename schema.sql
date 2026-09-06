@@ -3,12 +3,12 @@
 -- 1. Users Table
 CREATE TABLE IF NOT EXISTS users (
   id TEXT PRIMARY KEY,
-  username TEXT UNIQUE NOT NULL,
+  username TEXT NOT NULL,
   email TEXT UNIQUE NOT NULL,
-  password_hash TEXT NOT NULL,
-  salt TEXT NOT NULL,
+  password_hash TEXT NOT NULL DEFAULT '',
+  salt TEXT NOT NULL DEFAULT '',
   country TEXT DEFAULT 'United States',
-  flag TEXT DEFAULT '🇺🇸',
+  flag TEXT DEFAULT '🌐',
   is_anonymous INTEGER DEFAULT 0,
   created_at INTEGER NOT NULL
 );

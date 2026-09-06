@@ -129,7 +129,7 @@ export default {
       }
 
       try {
-        const { username, email, password, code, country, flag } = await request.json();
+        const { username, email, password, code, country, flag, isPublicLb, deviceId } = await request.json();
         if (!username || !email || !password || !code) {
           return new Response(JSON.stringify({ error: 'All fields are required.' }), { status: 400, headers: corsHeaders });
         }
@@ -150,23 +150,49 @@ export default {
         const salt = crypto.randomUUID();
         const passwordHash = await hashPassword(password, salt);
         const userId = crypto.randomUUID();
+        const isAnon = isPublicLb === false ? 2 : 0; // 0 = public named, 1 = public anon, 2 = hidden/private
 
-        // Save User & Init Stats in D1
-        await db.batch([
+        // Check if previous guest device had accumulated stats to migrate
+        let initialDaily = 0;
+        let initialWeekly = 0;
+        let initialAlltime = 0;
+        let initialStreak = 1;
+        let initialDate = '';
+
+        if (deviceId) {
+          const guestStats = await db.prepare('SELECT * FROM user_stats WHERE user_id = ?').bind(deviceId).first();
+          if (guestStats) {
+            initialDaily = guestStats.daily_secs || 0;
+            initialWeekly = guestStats.weekly_secs || 0;
+            initialAlltime = guestStats.alltime_secs || 0;
+            initialStreak = guestStats.streak_days || 1;
+            initialDate = guestStats.last_active_date || '';
+          }
+        }
+
+        // Save User & Migrate/Init Stats in D1
+        const batchOps = [
           db.prepare(`
-            INSERT INTO users (id, username, email, password_hash, salt, country, flag, created_at)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-          `).bind(userId, username, email.toLowerCase(), passwordHash, salt, country || 'United States', flag || '🇺🇸', Date.now()),
+            INSERT INTO users (id, username, email, password_hash, salt, country, flag, is_anonymous, created_at)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+          `).bind(userId, username, email.toLowerCase(), passwordHash, salt, country || 'United States', flag || '🐱', isAnon, Date.now()),
           db.prepare(`
-            INSERT INTO user_stats (user_id, daily_secs, weekly_secs, alltime_secs, streak_days, updated_at)
-            VALUES (?, 0, 0, 0, 1, ?)
-          `).bind(userId, Date.now()),
+            INSERT INTO user_stats (user_id, daily_secs, weekly_secs, alltime_secs, streak_days, last_active_date, updated_at)
+            VALUES (?, ?, ?, ?, ?, ?, ?)
+          `).bind(userId, initialDaily, initialWeekly, initialAlltime, initialStreak, initialDate, Date.now()),
           db.prepare('DELETE FROM otp_codes WHERE email = ?').bind(email.toLowerCase())
-        ]);
+        ];
+
+        if (deviceId) {
+          batchOps.push(db.prepare('DELETE FROM user_stats WHERE user_id = ?').bind(deviceId));
+          batchOps.push(db.prepare('DELETE FROM users WHERE id = ?').bind(deviceId));
+        }
+
+        await db.batch(batchOps);
 
         return new Response(JSON.stringify({
           success: true,
-          user: { id: userId, username, email: email.toLowerCase(), country: country || 'United States', flag: flag || '🇺🇸' }
+          user: { id: userId, username, email: email.toLowerCase(), country: country || 'United States', flag: flag || '🐱', isPublicLb: isPublicLb !== false }
         }), { status: 201, headers: corsHeaders });
       } catch (err) {
         return new Response(JSON.stringify({ error: err.message }), { status: 500, headers: corsHeaders });
@@ -288,9 +314,25 @@ export default {
       }
 
       try {
-        const { userId, dailySecs, weeklySecs, alltimeSecs, streakDays, lastDate } = await request.json();
+        const { userId, username, emoji, isAnonymous, isPublicLb, dailySecs, weeklySecs, alltimeSecs, streakDays, lastDate } = await request.json();
         if (!userId) {
           return new Response(JSON.stringify({ error: 'User ID is required to sync.' }), { status: 400, headers: corsHeaders });
+        }
+
+        const isAnon = isPublicLb === false ? 2 : (isAnonymous ? 1 : 0);
+        const userEmail = `${userId}@device.flowstate.app`;
+
+        // Check if user row already exists
+        const existingUser = await db.prepare('SELECT id FROM users WHERE id = ?').bind(userId).first();
+        if (!existingUser) {
+          await db.prepare(`
+            INSERT INTO users (id, username, email, password_hash, salt, country, flag, is_anonymous, created_at)
+            VALUES (?, ?, ?, '', '', 'Global', ?, ?, ?)
+          `).bind(userId, username || 'Anonymous Scholar', userEmail, emoji || '🐱', isAnon, Date.now()).run();
+        } else {
+          await db.prepare(`
+            UPDATE users SET is_anonymous = ?, username = COALESCE(?, username), flag = COALESCE(?, flag) WHERE id = ?
+          `).bind(isAnon, username || null, emoji || null, userId).run();
         }
 
         await db.prepare(`
@@ -324,16 +366,15 @@ export default {
         const rows = await db.prepare(`
           SELECT 
             u.id,
-            CASE WHEN u.is_anonymous = 1 THEN 'Anonymous' ELSE u.username END as name,
-            CASE WHEN u.is_anonymous = 1 THEN '🌐' ELSE u.flag END as flag,
-            CASE WHEN u.is_anonymous = 1 THEN 'Anonymous' ELSE u.country END as country,
+            u.username as name,
+            COALESCE(u.flag, '🐱') as emoji,
             s.daily_secs as daily,
             s.weekly_secs as weekly,
             s.alltime_secs as alltime,
             s.streak_days as streak
           FROM user_stats s
           JOIN users u ON s.user_id = u.id
-          WHERE ${orderColumn} > 0
+          WHERE ${orderColumn} > 0 AND u.is_anonymous != 2
           ORDER BY ${orderColumn} DESC
           LIMIT 50
         `).all();

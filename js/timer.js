@@ -216,6 +216,9 @@ function updateAllStatsUI() {
   if (typeof renderLeaderboard === 'function') {
     renderLeaderboard();
   }
+  if (typeof triggerAutoSync === 'function') {
+    triggerAutoSync(3000);
+  }
 }
 
 function addFocusSecond() {

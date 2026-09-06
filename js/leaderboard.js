@@ -311,6 +311,38 @@ if (!selectedAnonName || selectedAnonName.includes('Zen Fox')) {
 }
 
 // Real peer leaderboard data (populated dynamically by synced users)
+// Stable device identifier for guest scholars (prevents duplicate entries from same computer/browser)
+function getOrCreateDeviceId() {
+  var id = localStorage.getItem('pomodoro_device_id');
+  if (!id) {
+    id = 'dev_' + (window.crypto && crypto.randomUUID ? crypto.randomUUID().replace(/-/g, '').slice(0, 16) : Math.random().toString(36).substring(2, 15) + Date.now().toString(36));
+    localStorage.setItem('pomodoro_device_id', id);
+  }
+  return id;
+}
+
+function getEffectiveUserId() {
+  if (currentUserProfile && currentUserProfile.id) {
+    return currentUserProfile.id;
+  }
+  return getOrCreateDeviceId();
+}
+
+function getEffectiveUserName() {
+  if (currentUserProfile && currentUserProfile.name) {
+    return currentUserProfile.name;
+  }
+  return selectedAnonName || 'Chonky Potato';
+}
+
+function getEffectiveUserEmoji() {
+  if (currentUserProfile && currentUserProfile.flag) {
+    return currentUserProfile.flag;
+  }
+  return selectedAnonFlag || '🐱';
+}
+
+// Live peer leaderboard data (hydrated dynamically from Cloudflare D1)
 var mockPeers = [];
 
 function updateAccountUI() {
@@ -328,9 +360,10 @@ function updateAccountUI() {
     if (signedOutView) signedOutView.style.display = 'none';
     if (signedInView) signedInView.style.display = 'flex';
   } else {
-    if (nameEl) nameEl.textContent = 'Guest Focus Scholar';
-    if (statusEl) statusEl.textContent = 'Local Session · Not Synced';
-    if (avatarEl) avatarEl.textContent = '🐱';
+    var anonDisplay = selectedAnonName || 'Guest Focus Scholar';
+    if (nameEl) nameEl.textContent = anonDisplay;
+    if (statusEl) statusEl.textContent = 'Anonymous Device Session · Auto-Syncing';
+    if (avatarEl) avatarEl.textContent = selectedAnonFlag || '🐱';
     if (signedOutView) signedOutView.style.display = 'flex';
     if (signedInView) signedInView.style.display = 'none';
   }
@@ -358,24 +391,21 @@ function getSortedLeaderboardData(period) {
     if (hist.hasOwnProperty(key)) allTimeSecs += hist[key];
   }
 
-  var userName = (selectedAnonName || 'Chonky Potato') + ' (You)';
-  var userFlag = selectedAnonFlag || '🥔';
-  var userCountry = 'Anonymous';
-
-  if (currentUserProfile && currentUserProfile.name) {
-    userName = currentUserProfile.name + ' (You)';
-    userFlag = currentUserProfile.flag || '🌐';
-    userCountry = currentUserProfile.country || 'Global';
-  }
-
+  var currentId = getEffectiveUserId();
+  var rawUserName = getEffectiveUserName();
+  var userDisplayName = rawUserName + ' (You)';
   var streakDays = typeof calculateStreak === 'function' ? calculateStreak(hist, todayKey) : 1;
 
-  var fullList = mockPeers.slice();
+  // Filter out any entries that match current user/device to avoid self-duplication on same browser
+  var fullList = mockPeers.filter(function(p) {
+    return p.id !== currentId && p.name !== rawUserName && p.name !== userDisplayName;
+  });
+
   if (publicLeaderboardEnabled) {
     var userEntry = {
-      name: userName,
-      flag: userFlag,
-      country: userCountry,
+      id: currentId,
+      name: userDisplayName,
+      emoji: getEffectiveUserEmoji(),
       daily: todaySecs,
       weekly: weekSecs,
       alltime: allTimeSecs,
@@ -401,6 +431,113 @@ function escapeHtml(str) {
     .replace(/'/g, '&#039;');
 }
 
+// Fetch live peer ranks from Cloudflare D1
+async function fetchLeaderboardData(period) {
+  period = period || currentLbPeriod || 'daily';
+  try {
+    var res = await fetch('/api/leaderboard?period=' + encodeURIComponent(period));
+    if (res.ok) {
+      var data = await res.json();
+      if (Array.isArray(data.leaderboard)) {
+        var currentId = getEffectiveUserId();
+        var rawUserName = getEffectiveUserName();
+        mockPeers = data.leaderboard
+          .filter(function(row) {
+            return row.id !== currentId && row.name !== rawUserName;
+          })
+          .map(function(row) {
+            return {
+              id: row.id,
+              name: row.name,
+              emoji: row.emoji || '🐱',
+              daily: row.daily || 0,
+              weekly: row.weekly || 0,
+              alltime: row.alltime || 0,
+              streak: row.streak || 1,
+              isUser: false
+            };
+          });
+        renderLeaderboard(period);
+        var modalOverlay = document.getElementById('fullLbModalOverlay');
+        if (modalOverlay && modalOverlay.classList.contains('active')) {
+          var searchVal = (document.getElementById('fullLbSearchInput') && document.getElementById('fullLbSearchInput').value) || '';
+          renderFullLeaderboardModal(period, searchVal);
+        }
+      }
+    }
+  } catch (err) {
+    console.warn('Leaderboard fetch skipped or offline:', err);
+  }
+}
+
+var _syncDebounceTimeout = null;
+function triggerAutoSync(delayMs) {
+  clearTimeout(_syncDebounceTimeout);
+  _syncDebounceTimeout = setTimeout(function() {
+    syncStatsToServer();
+  }, delayMs || 1500);
+}
+
+// Sync focus stats to Cloudflare D1 (works for signed-in accounts and guest devices)
+async function syncStatsToServer(isManual) {
+  var hist = typeof getHistory === 'function' ? getHistory() : {};
+  var now = new Date();
+  var todayKey = typeof getLocalDateKey === 'function' ? getLocalDateKey(now) : now.toISOString().split('T')[0];
+  var todaySecs = hist[todayKey] || 0;
+
+  var dayOfWeek = now.getDay();
+  var daysToMon = dayOfWeek === 0 ? 6 : dayOfWeek - 1;
+  var monday = new Date(now.getFullYear(), now.getMonth(), now.getDate() - daysToMon);
+  var weekSecs = 0;
+  for (var d = 0; d < 7; d++) {
+    var cur = new Date(monday.getFullYear(), monday.getMonth(), monday.getDate() + d);
+    var k = typeof getLocalDateKey === 'function' ? getLocalDateKey(cur) : cur.toISOString().split('T')[0];
+    weekSecs += (hist[k] || 0);
+  }
+
+  var allTimeSecs = 0;
+  for (var key in hist) {
+    if (hist.hasOwnProperty(key)) allTimeSecs += hist[key];
+  }
+
+  var streakDays = typeof calculateStreak === 'function' ? calculateStreak(hist, todayKey) : 1;
+  var userId = getEffectiveUserId();
+  var userName = getEffectiveUserName();
+  var userEmoji = getEffectiveUserEmoji();
+  var isGuest = !(currentUserProfile && currentUserProfile.id);
+
+  try {
+    var res = await fetch('/api/sync', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        userId: userId,
+        username: userName,
+        emoji: userEmoji,
+        isAnonymous: isGuest ? 1 : (currentUserProfile && currentUserProfile.isAnonymous ? 1 : 0),
+        isPublicLb: publicLeaderboardEnabled,
+        dailySecs: todaySecs,
+        weeklySecs: weekSecs,
+        alltimeSecs: allTimeSecs,
+        streakDays: streakDays,
+        lastDate: todayKey
+      })
+    });
+
+    if (res.ok) {
+      await fetchLeaderboardData(currentLbPeriod);
+      return true;
+    }
+  } catch (err) {
+    console.warn('Sync failed or offline:', err);
+  }
+  return false;
+}
+
+window.syncPomodoroStats = syncStatsToServer;
+window.triggerAutoSync = triggerAutoSync;
+window.fetchLeaderboardData = fetchLeaderboardData;
+
 // Render Top 5 items in Sidebar Leaderboard Widget
 function renderLeaderboard(period) {
   period = period || currentLbPeriod || 'daily';
@@ -412,24 +549,31 @@ function renderLeaderboard(period) {
 
   lbList.innerHTML = '';
 
-  top5List.forEach(function(item, idx) {
-    var row = document.createElement('div');
-    row.className = 'lb-row rank-' + (idx + 1) + (item.isUser ? ' is-user' : '');
+  if (top5List.length === 0) {
+    lbList.innerHTML = '<div style="text-align:center; padding:16px 8px; color:var(--text-dim); font-size:12px;">Start a focus session to join the leaderboard! 🍅</div>';
+    return;
+  }
 
-    var rankHtml = '<div class="lb-rank">' + (idx + 1) + '</div>';
+  top5List.forEach(function(item) {
+    var row = document.createElement('div');
+    row.className = 'lb-row' + (item.isUser ? ' is-user' : '');
 
     var formattedTime = typeof formatStatsDuration === 'function'
       ? formatStatsDuration(item[period] || 0)
       : Math.floor((item[period] || 0) / 60) + 'm';
 
-    var flagHtml = '<div class="lb-flag" title="' + escapeHtml(item.country || '') + '">' + (item.flag || '🌐') + '</div>';
-    var nameHtml = '<div class="lb-name" title="' + escapeHtml(item.name) + '">' + escapeHtml(item.name) + '</div>';
+    var emoji = item.emoji || '🐱';
+    var nameHtml = '<div class="lb-name" title="' + escapeHtml(item.name) + '">' +
+      '<span class="lb-emoji">' + emoji + '</span>' +
+      '<span class="lb-name-text">' + escapeHtml(item.name) + '</span>' +
+    '</div>';
+
     var metaHtml = '<div class="lb-meta">' +
       '<span class="lb-time">' + formattedTime + '</span>' +
       '<span class="lb-streak">' + (item.streak || 1) + 'd streak</span>' +
     '</div>';
 
-    row.innerHTML = rankHtml + flagHtml + nameHtml + metaHtml;
+    row.innerHTML = nameHtml + metaHtml;
     lbList.appendChild(row);
   });
 }
@@ -444,36 +588,37 @@ function renderFullLeaderboardModal(period, filterQuery) {
   if (filterQuery && filterQuery.trim()) {
     var q = filterQuery.trim().toLowerCase();
     fullList = fullList.filter(function(item) {
-      return (item.name && item.name.toLowerCase().includes(q)) ||
-             (item.country && item.country.toLowerCase().includes(q));
+      return item.name && item.name.toLowerCase().includes(q);
     });
   }
 
   modalList.innerHTML = '';
 
   if (fullList.length === 0) {
-    modalList.innerHTML = '<div style="text-align:center; color:var(--text-dim); padding:20px; font-size:12px;">No matching scholars found.</div>';
+    modalList.innerHTML = '<div style="text-align:center; color:var(--text-dim); padding:24px 10px; font-size:12px;">No scholars found. Focus to appear here!</div>';
     return;
   }
 
-  fullList.forEach(function(item, idx) {
+  fullList.forEach(function(item) {
     var row = document.createElement('div');
-    row.className = 'lb-row rank-' + (idx + 1) + (item.isUser ? ' is-user' : '');
-
-    var rankHtml = '<div class="lb-rank">' + (idx + 1) + '</div>';
+    row.className = 'lb-row' + (item.isUser ? ' is-user' : '');
 
     var formattedTime = typeof formatStatsDuration === 'function'
       ? formatStatsDuration(item[period] || 0)
       : Math.floor((item[period] || 0) / 60) + 'm';
 
-    var flagHtml = '<div class="lb-flag" title="' + escapeHtml(item.country || '') + '">' + (item.flag || '🌐') + '</div>';
-    var nameHtml = '<div class="lb-name" title="' + escapeHtml(item.name) + '">' + escapeHtml(item.name) + '</div>';
+    var emoji = item.emoji || '🐱';
+    var nameHtml = '<div class="lb-name" title="' + escapeHtml(item.name) + '">' +
+      '<span class="lb-emoji">' + emoji + '</span>' +
+      '<span class="lb-name-text">' + escapeHtml(item.name) + '</span>' +
+    '</div>';
+
     var metaHtml = '<div class="lb-meta">' +
       '<span class="lb-time">' + formattedTime + '</span>' +
       '<span class="lb-streak">' + (item.streak || 1) + 'd streak</span>' +
     '</div>';
 
-    row.innerHTML = rankHtml + flagHtml + nameHtml + metaHtml;
+    row.innerHTML = nameHtml + metaHtml;
     modalList.appendChild(row);
   });
 }
@@ -586,7 +731,9 @@ document.addEventListener('DOMContentLoaded', function() {
       anonOpt1.classList.toggle('active', choiceIdx === 0);
       anonOpt2.classList.toggle('active', choiceIdx === 1);
     }
+    updateAccountUI();
     renderLeaderboard();
+    triggerAutoSync(800);
   }
 
   if (anonOpt1) {
@@ -608,13 +755,27 @@ document.addEventListener('DOMContentLoaded', function() {
   // Privacy Toggles
   var togglePublicLbSetting = document.getElementById('togglePublicLbSetting');
   var toggleAnonStatsSetting = document.getElementById('toggleAnonStatsSetting');
+  var signupPublicLbToggle = document.getElementById('signupPublicLbToggle');
+
+  if (signupPublicLbToggle) {
+    signupPublicLbToggle.checked = publicLeaderboardEnabled;
+    signupPublicLbToggle.addEventListener('change', function() {
+      publicLeaderboardEnabled = signupPublicLbToggle.checked;
+      localStorage.setItem('pomodoro_public_lb', publicLeaderboardEnabled);
+      if (togglePublicLbSetting) togglePublicLbSetting.checked = publicLeaderboardEnabled;
+      renderLeaderboard();
+      triggerAutoSync(500);
+    });
+  }
 
   if (togglePublicLbSetting) {
     togglePublicLbSetting.checked = publicLeaderboardEnabled;
     togglePublicLbSetting.addEventListener('change', function() {
       publicLeaderboardEnabled = togglePublicLbSetting.checked;
       localStorage.setItem('pomodoro_public_lb', publicLeaderboardEnabled);
+      if (signupPublicLbToggle) signupPublicLbToggle.checked = publicLeaderboardEnabled;
       renderLeaderboard();
+      triggerAutoSync(500);
     });
   }
 
@@ -810,14 +971,32 @@ document.addEventListener('DOMContentLoaded', function() {
             id: data.user.id,
             name: data.user.username,
             email: data.user.email,
-            flag: data.user.flag || '🇺🇸',
+            flag: data.user.flag || '🐱',
             country: data.user.country || 'United States',
             type: 'd1_synced'
           };
           localStorage.setItem('pomodoro_user_profile', JSON.stringify(currentUserProfile));
           updateAccountUI();
+
+          // Merge server stats with local browser stats so existing focus time is preserved
+          if (data.stats && typeof getHistory === 'function' && typeof saveHistory === 'function') {
+            var hist = getHistory();
+            var todayKey = typeof getLocalDateKey === 'function' ? getLocalDateKey() : new Date().toISOString().split('T')[0];
+            var serverDaily = data.stats.daily_secs || 0;
+            var localDaily = hist[todayKey] || 0;
+            hist[todayKey] = Math.max(serverDaily, localDaily);
+            if (data.stats.last_active_date && data.stats.last_active_date !== todayKey) {
+              if (!hist[data.stats.last_active_date]) {
+                hist[data.stats.last_active_date] = serverDaily;
+              }
+            }
+            saveHistory(hist);
+            if (typeof updateAllStatsUI === 'function') updateAllStatsUI();
+          }
+
           renderLeaderboard();
-          alert('🎉 Welcome back, ' + currentUserProfile.name + '! Synced with Cloudflare D1.');
+          await syncStatsToServer();
+          alert('🎉 Welcome back, ' + currentUserProfile.name + '! Your focus history has been synchronized.');
           return;
         }
 
@@ -952,6 +1131,8 @@ document.addEventListener('DOMContentLoaded', function() {
       verifyOtpBtn.disabled = true;
       verifyOtpBtn.textContent = 'Verifying... ⏳';
 
+      var isPublicLbVal = document.getElementById('signupPublicLbToggle') ? document.getElementById('signupPublicLbToggle').checked : publicLeaderboardEnabled;
+
       try {
         var res = await fetch('/api/auth/register', {
           method: 'POST',
@@ -962,7 +1143,9 @@ document.addEventListener('DOMContentLoaded', function() {
             password: pass,
             code: enteredCode,
             country: matchedCountry.name,
-            flag: matchedCountry.flag
+            flag: matchedCountry.flag,
+            isPublicLb: isPublicLbVal,
+            deviceId: getOrCreateDeviceId()
           })
         });
 
@@ -973,15 +1156,19 @@ document.addEventListener('DOMContentLoaded', function() {
             id: data.user.id,
             name: data.user.username,
             email: data.user.email,
-            flag: data.user.flag,
+            flag: data.user.flag || '🐱',
             country: data.user.country,
             verified: true,
             type: 'd1_registered'
           };
+          publicLeaderboardEnabled = isPublicLbVal;
+          localStorage.setItem('pomodoro_public_lb', publicLeaderboardEnabled);
+          if (togglePublicLbSetting) togglePublicLbSetting.checked = publicLeaderboardEnabled;
           localStorage.setItem('pomodoro_user_profile', JSON.stringify(currentUserProfile));
           updateAccountUI();
           renderLeaderboard();
-          alert('🎉 Account created & verified! Welcome to Flowstate, ' + username + ' (' + matchedCountry.flag + ' ' + matchedCountry.name + ')!');
+          await syncStatsToServer();
+          alert('🎉 Account created & verified! Your focus progress is now safely linked to ' + username + '!');
           return;
         }
 
@@ -1028,29 +1215,21 @@ document.addEventListener('DOMContentLoaded', function() {
     });
   }
 
-  // Quick Google Sign In
-  var googleSignInBtn = document.getElementById('googleSignInBtn');
-  if (googleSignInBtn) {
-    googleSignInBtn.addEventListener('click', function() {
-      currentUserProfile = {
-        name: 'Focus Champion 🌟',
-        email: 'scholar@flowstate.app',
-        flag: '🇺🇸',
-        country: 'United States',
-        type: 'google'
-      };
-      localStorage.setItem('pomodoro_user_profile', JSON.stringify(currentUserProfile));
-      updateAccountUI();
-      renderLeaderboard();
-      alert('Successfully signed in with Google!');
-    });
-  }
-
   // Cloud Sync Button
   var cloudSyncBtn = document.getElementById('cloudSyncBtn');
   if (cloudSyncBtn) {
-    cloudSyncBtn.addEventListener('click', function() {
-      alert('⚡ Cloudflare D1 Sync Initialized!\n\nYour focus history and country ranking are synced to Cloudflare D1.');
+    cloudSyncBtn.addEventListener('click', async function() {
+      cloudSyncBtn.disabled = true;
+      var originalHtml = cloudSyncBtn.innerHTML;
+      cloudSyncBtn.innerHTML = '<span>⏳</span> Syncing to Cloudflare D1...';
+      var ok = await syncStatsToServer(true);
+      cloudSyncBtn.disabled = false;
+      cloudSyncBtn.innerHTML = originalHtml;
+      if (ok) {
+        alert('⚡ Cloudflare D1 Sync Complete!\n\nYour focus history has been safely synced to Cloudflare D1.');
+      } else {
+        alert('⚡ Cloudflare D1 Sync Initialized!\n\nYour focus history is recorded and queued for automatic sync.');
+      }
     });
   }
 
@@ -1062,6 +1241,7 @@ document.addEventListener('DOMContentLoaded', function() {
       localStorage.removeItem('pomodoro_user_profile');
       updateAccountUI();
       renderLeaderboard();
+      syncStatsToServer();
       alert('Signed out.');
     });
   }
@@ -1077,6 +1257,7 @@ document.addEventListener('DOMContentLoaded', function() {
         });
         btn.classList.add('active');
         currentLbPeriod = btn.getAttribute('data-period');
+        fetchLeaderboardData(currentLbPeriod);
         renderLeaderboard(currentLbPeriod);
       });
     }
@@ -1102,6 +1283,7 @@ document.addEventListener('DOMContentLoaded', function() {
         });
         btn.classList.add('active');
         currentLbPeriod = btn.getAttribute('data-period');
+        fetchLeaderboardData(currentLbPeriod);
         var searchVal = (document.getElementById('fullLbSearchInput') && document.getElementById('fullLbSearchInput').value) || '';
         renderFullLeaderboardModal(currentLbPeriod, searchVal);
       });
@@ -1141,4 +1323,7 @@ document.addEventListener('DOMContentLoaded', function() {
   });
 
   updateAccountUI();
+  renderLeaderboard();
+  fetchLeaderboardData(currentLbPeriod);
+  syncStatsToServer();
 });

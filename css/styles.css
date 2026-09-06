@@ -1063,69 +1063,41 @@ body.light-theme .color-picker-row .color-circle.active {
 }
 .lb-row,
 .lb-item {
-  display: grid;
-  grid-template-columns: 24px 22px 1fr auto;
+  display: flex;
   align-items: center;
+  justify-content: space-between;
   gap: 12px;
-  padding: 10px 12px;
+  padding: 8px 10px;
   background: transparent;
-  border: 1px solid transparent;
-  border-radius: 10px;
+  border-bottom: 1px solid var(--line);
+  border-radius: 0;
   transition: background 0.15s ease;
+}
+.lb-row:last-child,
+.lb-item:last-child {
+  border-bottom: none;
 }
 .lb-row:hover,
 .lb-item:hover {
   background: rgba(255, 255, 255, 0.03);
 }
 
-/* Only Row #1 gets a highlighted card background & raised surface */
-.lb-row.rank-1 {
-  background: rgba(255, 255, 255, 0.04);
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
-}
-.lb-row.rank-1:hover {
-  background: rgba(255, 255, 255, 0.06);
-}
-
 /* Current user highlight (tasteful, non-competing) */
 .lb-row.is-user,
 .lb-item.is-user {
-  background: rgba(192, 132, 252, 0.06) !important;
-  border: 1px solid rgba(192, 132, 252, 0.22) !important;
+  background: var(--focus-badge) !important;
+  border: 1px solid var(--focus-badge-border) !important;
+  border-radius: 6px;
 }
 .lb-row.is-user:hover {
-  background: rgba(192, 132, 252, 0.09) !important;
+  background: var(--focus-badge) !important;
 }
 
-/* Rank column - Plain consistent gray numerals */
-.lb-rank {
-  font-size: 13px;
-  font-weight: 500;
-  color: var(--text-dim);
-  text-align: center;
-  font-variant-numeric: tabular-nums;
-  line-height: 1;
-  width: 24px;
-}
-.lb-row.rank-1 .lb-rank {
-  font-weight: 700;
-  color: var(--text);
-}
-
-/* Flag column */
-.lb-flag,
-.lb-country-flag {
-  font-size: 15px;
-  line-height: 1;
+/* Name column - Clean typography hierarchy with compact emoji spacing */
+.lb-name {
   display: flex;
   align-items: center;
-  justify-content: center;
-  user-select: none;
-}
-
-/* Name column - First names only, clean typography hierarchy */
-.lb-name {
+  gap: 4px;
   font-size: 13px;
   font-weight: 400;
   color: var(--text-dim);
@@ -1133,10 +1105,21 @@ body.light-theme .color-picker-row .color-circle.active {
   overflow: hidden;
   text-overflow: ellipsis;
   letter-spacing: 0.01em;
+  flex: 1;
+  min-width: 0;
 }
-.lb-row.rank-1 .lb-name {
-  font-weight: 600;
-  color: var(--text);
+.lb-emoji {
+  font-size: 13px;
+  line-height: 1;
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+.lb-name-text {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 .lb-row.is-user .lb-name {
   color: var(--text);
@@ -1169,10 +1152,6 @@ body.light-theme .color-picker-row .color-circle.active {
   font-variant-numeric: tabular-nums;
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
   line-height: 1.2;
-}
-.lb-row.rank-1 .lb-time {
-  font-weight: 700;
-  color: var(--focus);
 }
 .lb-row.is-user .lb-time {
   color: var(--focus);
@@ -1302,7 +1281,7 @@ body.light-theme .color-picker-row .color-circle.active {
 .full-lb-list {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 0;
   overflow-y: auto;
   max-height: 50vh;
   padding-right: 4px;
