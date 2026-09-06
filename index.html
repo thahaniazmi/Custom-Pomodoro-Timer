@@ -148,6 +148,7 @@
         <button type="button" class="lb-filter-btn" data-period="alltime" id="lbBtnAlltime">All-Time</button>
       </div>
       <div class="lb-list" id="lbList"></div>
+      <button type="button" id="lbShowMoreBtn" class="lb-show-more-btn"><span>🏆 Show Full Leaderboard</span> ↗</button>
     </div>
   </div>
 </div>
@@ -305,23 +306,95 @@
     <div class="settings-tab-content" id="tabAccount">
       <div class="account-box">
         <div class="account-profile-row">
-          <div class="account-avatar">🐱</div>
+          <div class="account-avatar" id="accountAvatar">🐱</div>
           <div class="account-info">
             <span class="account-name" id="accountDisplayName">Guest Focus Scholar</span>
             <span class="account-status" id="accountStatusText">Local Session · Not Synced</span>
           </div>
         </div>
-        <div class="account-btn-group">
-          <button type="button" class="account-btn primary" id="googleSignInBtn">
-            <span>🌐</span> Sign In with Google
+
+        <div id="authSignedOutView" class="auth-form">
+          <div style="display: flex; gap: 6px; margin-bottom: 4px;">
+            <button type="button" class="lb-filter-btn active" id="authTabSignIn">Sign In</button>
+            <button type="button" class="lb-filter-btn" id="authTabSignUp">Sign Up with Email OTP</button>
+          </div>
+
+          <!-- SIGN IN FORM -->
+          <div id="formSignInGroup">
+            <div class="auth-input-group">
+              <label class="auth-label" for="loginEmailInput">Email or Username</label>
+              <input type="text" id="loginEmailInput" class="auth-input" placeholder="scholar@flowstate.app">
+            </div>
+            <div class="auth-input-group" style="margin-top: 6px;">
+              <label class="auth-label" for="loginPasswordInput">Password</label>
+              <input type="password" id="loginPasswordInput" class="auth-input" placeholder="••••••••">
+            </div>
+            <button type="button" class="account-btn primary" id="accountSignInBtn" style="margin-top: 10px;">
+              <span>🔑</span> Sign In
+            </button>
+          </div>
+
+          <!-- SIGN UP FORM (WITH EMAIL OTP & COUNTRY SELECT) -->
+          <div id="formSignUpGroup" style="display: none;">
+            <div class="auth-input-group">
+              <label class="auth-label" for="signupUsernameInput">Username</label>
+              <input type="text" id="signupUsernameInput" class="auth-input" placeholder="e.g. FocusChampion">
+            </div>
+            <div class="auth-input-group" style="margin-top: 6px;">
+              <label class="auth-label" for="signupEmailInput">Email Address</label>
+              <input type="email" id="signupEmailInput" class="auth-input" placeholder="you@flowstate.app">
+            </div>
+            <div class="auth-input-group" style="margin-top: 6px;">
+              <label class="auth-label" for="signupPasswordInput">Password</label>
+              <input type="password" id="signupPasswordInput" class="auth-input" placeholder="At least 6 characters">
+            </div>
+            <div class="auth-input-group" style="margin-top: 6px;">
+              <label class="auth-label" for="signupCountrySelect">Country</label>
+              <select id="signupCountrySelect" class="country-select">
+                <option value="🇺🇸 United States">🇺🇸 United States</option>
+                <option value="🇨🇦 Canada">🇨🇦 Canada</option>
+                <option value="🇬🇧 United Kingdom">🇬🇧 United Kingdom</option>
+                <option value="🇮🇳 India">🇮🇳 India</option>
+                <option value="🇩🇪 Germany">🇩🇪 Germany</option>
+                <option value="🇫🇷 France">🇫🇷 France</option>
+                <option value="🇯🇵 Japan">🇯🇵 Japan</option>
+                <option value="🇦🇺 Australia">🇦🇺 Australia</option>
+                <option value="🇧🇷 Brazil">🇧🇷 Brazil</option>
+                <option value="🇪🇸 Spain">🇪🇸 Spain</option>
+                <option value="🇮🇹 Italy">🇮🇹 Italy</option>
+                <option value="🇳🇱 Netherlands">🇳🇱 Netherlands</option>
+                <option value="🇸🇬 Singapore">🇸🇬 Singapore</option>
+                <option value="🇰🇷 South Korea">🇰🇷 South Korea</option>
+                <option value="🇲🇽 Mexico">🇲🇽 Mexico</option>
+              </select>
+            </div>
+
+            <!-- OTP CODE STEP -->
+            <div id="otpStepContainer" style="display: none; margin-top: 10px; padding: 10px; background: var(--panel); border: 1px dashed var(--focus-badge-border); border-radius: 8px;">
+              <span class="auth-label" style="color: var(--focus);">📧 6-Digit Email Verification Code</span>
+              <p style="font-size: 10.5px; color: var(--text-dim); margin: 4px 0 8px;">We sent a 6-digit code to your email. Enter it below to confirm:</p>
+              <div class="otp-group">
+                <input type="text" id="otpCodeInput" class="auth-input otp-input" placeholder="123456" maxlength="6">
+                <button type="button" class="account-btn primary" id="verifyOtpBtn" style="padding: 8px 14px;">Verify</button>
+              </div>
+            </div>
+
+            <button type="button" class="account-btn primary" id="sendOtpBtn" style="margin-top: 10px;">
+              <span>✉️</span> Send Email Verification Code
+            </button>
+          </div>
+
+          <div class="settings-divider" style="margin: 8px 0;"></div>
+          <button type="button" class="account-btn" id="googleSignInBtn">
+            <span>🌐</span> Quick Sign In with Google
           </button>
-          <button type="button" class="account-btn" id="emailSignInBtn">
-            <span>✉️</span> Sign In with Email
-          </button>
+        </div>
+
+        <div id="authSignedInView" class="account-btn-group" style="display: none;">
           <button type="button" class="account-btn" id="cloudSyncBtn">
             <span>🔄</span> Sync Data to Cloudflare D1
           </button>
-          <button type="button" class="account-btn danger" id="signOutBtn" style="display: none;">
+          <button type="button" class="account-btn danger" id="signOutBtn">
             <span>🚪</span> Sign Out
           </button>
         </div>
@@ -357,6 +430,28 @@
         </button>
       </div>
     </div>
+  </div>
+</div>
+
+<!-- Full Leaderboard Modal Overlay (With Backdrop Blur) -->
+<div class="modal-overlay" id="fullLbModalOverlay">
+  <div class="full-lb-modal">
+    <div class="full-lb-header">
+      <div class="full-lb-title">
+        <span>🏆 Global Focus Leaderboard</span>
+      </div>
+      <button type="button" class="full-lb-close-btn" id="fullLbCloseBtn" title="Close">✕</button>
+    </div>
+
+    <div class="lb-filter-row" style="margin-bottom: 12px;">
+      <button type="button" class="lb-filter-btn active" data-period="daily" id="modalLbBtnDaily">Daily</button>
+      <button type="button" class="lb-filter-btn" data-period="weekly" id="modalLbBtnWeekly">Weekly</button>
+      <button type="button" class="lb-filter-btn" data-period="alltime" id="modalLbBtnAlltime">All-Time</button>
+    </div>
+
+    <input type="text" id="fullLbSearchInput" class="full-lb-search" placeholder="🔍 Search scholars by name or country...">
+
+    <div class="full-lb-list" id="modalLbList"></div>
   </div>
 </div>
 
