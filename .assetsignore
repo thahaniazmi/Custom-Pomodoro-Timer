@@ -7,3 +7,4 @@ wrangler.json
 .env*
 .git*
 node_modules/
+.wrangler/
