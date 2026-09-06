@@ -133,17 +133,8 @@ if (!selectedAnonName || selectedAnonName.includes('Zen Fox')) {
   localStorage.setItem('pomodoro_anon_flag', selectedAnonFlag);
 }
 
-// Global peer mock data with country flags
-var mockPeers = [
-  { name: 'Sarah', flag: '🇺🇸', country: 'United States', daily: 28800, weekly: 144000, alltime: 432000, streak: 14, isUser: false },
-  { name: 'Alex', flag: '🇨🇦', country: 'Canada', daily: 21600, weekly: 108000, alltime: 324000, streak: 9, isUser: false },
-  { name: 'Elena', flag: '🇩🇪', country: 'Germany', daily: 14400, weekly: 72000, alltime: 216000, streak: 6, isUser: false },
-  { name: 'Marcus', flag: '🇬🇧', country: 'United Kingdom', daily: 10800, weekly: 54000, alltime: 162000, streak: 4, isUser: false },
-  { name: 'David', flag: '🇯🇵', country: 'Japan', daily: 7200, weekly: 36000, alltime: 108000, streak: 3, isUser: false },
-  { name: 'Chloe', flag: '🇫🇷', country: 'France', daily: 6400, weekly: 32000, alltime: 96000, streak: 5, isUser: false },
-  { name: 'Liam', flag: '🇦🇺', country: 'Australia', daily: 5800, weekly: 29000, alltime: 87000, streak: 2, isUser: false },
-  { name: 'Gabriel', flag: '🇧🇷', country: 'Brazil', daily: 4800, weekly: 24000, alltime: 72000, streak: 4, isUser: false }
-];
+// Real peer leaderboard data (populated dynamically by synced users)
+var mockPeers = [];
 
 function updateAccountUI() {
   var nameEl = document.getElementById('accountDisplayName');
