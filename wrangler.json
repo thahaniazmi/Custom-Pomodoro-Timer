@@ -7,5 +7,12 @@
   },
   "observability": {
     "enabled": false
-  }
+  },
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "pomodoro-db",
+      "database_id": "08171f31-cc97-402c-bf56-99d6cc1e7551"
+    }
+  ]
 }

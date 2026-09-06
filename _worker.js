@@ -85,7 +85,7 @@ export default {
     }
 
     const apiKey = env && env.RESEND_API_KEY;
-    const db = env && env.DB; // Cloudflare D1 Binding
+    const db = (env && (env.DB || env.pomodoro_db)); // Cloudflare D1 Binding
 
     // 1. Send OTP for Sign Up
     if (request.method === 'POST' && url.pathname === '/api/send-otp') {
