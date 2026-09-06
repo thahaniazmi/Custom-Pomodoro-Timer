@@ -696,61 +696,54 @@ document.addEventListener('DOMContentLoaded', function() {
     });
   }
 
-  // 2. Auto-Generate 2 Anonymous Names & Pill Chooser
-  var anonOpt1 = document.getElementById('anonOpt1');
-  var anonOpt2 = document.getElementById('anonOpt2');
-  var rollAnonNamesBtn = document.getElementById('rollAnonNamesBtn');
+  // 2. Custom Anonymous Identity: Input, Emoji Selector & Dice Randomizer
+  var EMOJI_LIST = ['🥔', '🧇', '🐱', '🐶', '🦊', '🦥', '🥑', '🥞', '🦙', '🍩', '🌮', '🥟', '🐸', '🐹', '🐧', '🍡', '🧁', '🍜', '🍵', '☕', '🌟', '🚀', '💻', '📚', '🎯', '⚡'];
 
-  function renderAnonChoices() {
-    currentAnonOptions = generateTwoAnonNames();
-    if (anonOpt1 && currentAnonOptions[0]) {
-      anonOpt1.textContent = currentAnonOptions[0].flag + ' ' + currentAnonOptions[0].fullName;
-      if (currentAnonOptions[0].fullName === selectedAnonName) {
-        anonOpt1.classList.add('active');
-        if (anonOpt2) anonOpt2.classList.remove('active');
-      }
-    }
-    if (anonOpt2 && currentAnonOptions[1]) {
-      anonOpt2.textContent = currentAnonOptions[1].flag + ' ' + currentAnonOptions[1].fullName;
-      if (currentAnonOptions[1].fullName === selectedAnonName) {
-        anonOpt2.classList.add('active');
-        if (anonOpt1) anonOpt1.classList.remove('active');
-      }
-    }
-  }
+  var anonNameInput = document.getElementById('anonNameInput');
+  var anonEmojiBtn = document.getElementById('anonEmojiBtn');
+  var rollAnonNameBtn = document.getElementById('rollAnonNameBtn');
 
-  function pickAnonName(choiceIdx) {
-    var chosen = currentAnonOptions[choiceIdx];
-    if (!chosen) return;
-    selectedAnonName = chosen.fullName;
-    selectedAnonFlag = chosen.flag;
-    localStorage.setItem('pomodoro_anon_name', selectedAnonName);
-    localStorage.setItem('pomodoro_anon_flag', selectedAnonFlag);
-
-    if (anonOpt1 && anonOpt2) {
-      anonOpt1.classList.toggle('active', choiceIdx === 0);
-      anonOpt2.classList.toggle('active', choiceIdx === 1);
-    }
-    updateAccountUI();
-    renderLeaderboard();
-    triggerAutoSync(800);
-  }
-
-  if (anonOpt1) {
-    anonOpt1.addEventListener('click', function() { pickAnonName(0); });
-  }
-  if (anonOpt2) {
-    anonOpt2.addEventListener('click', function() { pickAnonName(1); });
-  }
-  if (rollAnonNamesBtn) {
-    rollAnonNamesBtn.addEventListener('click', function(e) {
-      e.stopPropagation();
-      renderAnonChoices();
-      pickAnonName(0);
+  if (anonNameInput) {
+    anonNameInput.value = selectedAnonName || 'Chonky Potato';
+    anonNameInput.addEventListener('input', function() {
+      var val = anonNameInput.value.trim() || 'Chonky Potato';
+      selectedAnonName = val;
+      localStorage.setItem('pomodoro_anon_name', selectedAnonName);
+      updateAccountUI();
+      renderLeaderboard();
+      triggerAutoSync(800);
     });
   }
 
-  renderAnonChoices();
+  if (anonEmojiBtn) {
+    anonEmojiBtn.textContent = selectedAnonFlag || '🥔';
+    anonEmojiBtn.addEventListener('click', function() {
+      var curIdx = EMOJI_LIST.indexOf(selectedAnonFlag);
+      var nextIdx = (curIdx + 1) % EMOJI_LIST.length;
+      selectedAnonFlag = EMOJI_LIST[nextIdx];
+      anonEmojiBtn.textContent = selectedAnonFlag;
+      localStorage.setItem('pomodoro_anon_flag', selectedAnonFlag);
+      updateAccountUI();
+      renderLeaderboard();
+      triggerAutoSync(800);
+    });
+  }
+
+  if (rollAnonNameBtn) {
+    rollAnonNameBtn.addEventListener('click', function(e) {
+      e.stopPropagation();
+      var silly = generateSingleAnonName();
+      selectedAnonName = silly.fullName;
+      selectedAnonFlag = silly.flag;
+      localStorage.setItem('pomodoro_anon_name', selectedAnonName);
+      localStorage.setItem('pomodoro_anon_flag', selectedAnonFlag);
+      if (anonNameInput) anonNameInput.value = selectedAnonName;
+      if (anonEmojiBtn) anonEmojiBtn.textContent = selectedAnonFlag;
+      updateAccountUI();
+      renderLeaderboard();
+      triggerAutoSync(500);
+    });
+  }
 
   // Privacy Toggles
   var togglePublicLbSetting = document.getElementById('togglePublicLbSetting');

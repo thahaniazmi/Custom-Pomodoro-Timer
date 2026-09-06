@@ -427,16 +427,16 @@
         </label>
       </div>
 
-      <div id="anonNameChooserBox" style="margin-top: 8px; padding: 10px 12px; background: var(--panel); border: 1px solid var(--line); border-radius: 10px;">
-        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
-          <span class="auth-label" style="font-size: 10px; color: var(--text-dim);">🎭 Silly Anonymous Leaderboard Alias</span>
-          <button type="button" id="rollAnonNamesBtn" class="settings-btn-action" style="font-size: 9.5px; padding: 2px 6px;">🎲 Roll 2 New</button>
+      <div id="anonNameChooserBox" style="margin-top: 10px; padding: 12px; background: var(--panel); border: 1px solid var(--line); border-radius: 12px;">
+        <span class="auth-label" style="font-size: 10.5px; color: var(--text-dim); display: block; margin-bottom: 6px;">🎭 Custom Anonymous Leaderboard Identity</span>
+        <div class="anon-identity-input-row" style="display: flex; gap: 6px; align-items: center;">
+          <button type="button" id="anonEmojiBtn" class="anon-emoji-btn" title="Click to cycle/change avatar emoji">🥔</button>
+          <input type="text" id="anonNameInput" class="auth-input" placeholder="Type custom alias..." style="flex: 1; font-size: 12px;" maxlength="30">
+          <button type="button" id="rollAnonNameBtn" class="settings-btn-action" title="Randomize name & emoji" style="padding: 7px 10px; font-size: 13px; display: flex; align-items: center; justify-content: center;">
+            <span>🎲</span>
+          </button>
         </div>
-        <p style="font-size: 10.5px; color: var(--text-dim); margin: 0 0 8px;">Random silly names for your anonymous leaderboard identity:</p>
-        <div style="display: flex; gap: 8px;" id="anonNameOptionsWrap">
-          <button type="button" class="anon-name-pill active" id="anonOpt1">🥔 Chonky Potato</button>
-          <button type="button" class="anon-name-pill" id="anonOpt2">🧇 Caffeinated Waffle</button>
-        </div>
+        <p style="font-size: 10.5px; color: var(--text-dim); margin: 6px 0 0;">Type your custom display name, click the emoji to pick an avatar, or tap 🎲 to roll a silly alias.</p>
       </div>
 
       <div class="settings-divider"></div>
