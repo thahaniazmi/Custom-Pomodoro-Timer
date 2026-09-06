@@ -312,9 +312,43 @@
               <label class="auth-label" for="loginPasswordInput">Password</label>
               <input type="password" id="loginPasswordInput" class="auth-input" placeholder="••••••••">
             </div>
-            <button type="button" class="account-btn primary" id="accountSignInBtn" style="margin-top: 10px;">
+            <div style="display: flex; justify-content: flex-end; margin-top: 4px;">
+              <button type="button" id="forgotPasswordLinkBtn" style="background: none; border: none; color: var(--focus); font-size: 11px; cursor: pointer; padding: 2px;">Forgot password?</button>
+            </div>
+            <button type="button" class="account-btn primary" id="accountSignInBtn" style="margin-top: 8px;">
               <span>🔑</span> Sign In
             </button>
+          </div>
+
+          <!-- FORGOT PASSWORD FORM -->
+          <div id="formForgotPassGroup" style="display: none;">
+            <div class="auth-input-group">
+              <label class="auth-label" for="forgotEmailInput">Account Email</label>
+              <input type="email" id="forgotEmailInput" class="auth-input" placeholder="you@flowstate.app">
+            </div>
+            <button type="button" class="account-btn primary" id="sendForgotOtpBtn" style="margin-top: 10px;">
+              <span>✉️</span> Send Reset Code
+            </button>
+
+            <!-- RESET PASSWORD OTP STEP -->
+            <div id="forgotStepContainer" style="display: none; margin-top: 10px; padding: 10px; background: var(--panel); border: 1px dashed var(--focus-badge-border); border-radius: 8px;">
+              <span class="auth-label" style="color: var(--focus);">🔒 Enter 6-Digit Code & New Password</span>
+              <div class="auth-input-group" style="margin-top: 6px;">
+                <label class="auth-label" for="forgotOtpInput">6-Digit Reset Code</label>
+                <input type="text" id="forgotOtpInput" class="auth-input otp-input" placeholder="123456" maxlength="6">
+              </div>
+              <div class="auth-input-group" style="margin-top: 6px;">
+                <label class="auth-label" for="forgotNewPassInput">New Password</label>
+                <input type="password" id="forgotNewPassInput" class="auth-input" placeholder="Min 6 characters">
+              </div>
+              <button type="button" class="account-btn primary" id="confirmResetPassBtn" style="margin-top: 10px;">
+                <span>✅</span> Update Password & Sign In
+              </button>
+            </div>
+
+            <div style="text-align: center; margin-top: 8px;">
+              <button type="button" id="backToSignInBtn" style="background: none; border: none; color: var(--text-dim); font-size: 11px; cursor: pointer;">← Back to Sign In</button>
+            </div>
           </div>
 
           <!-- SIGN UP FORM (WITH EMAIL OTP & COUNTRY SELECT) -->
