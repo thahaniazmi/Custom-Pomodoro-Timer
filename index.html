@@ -1,0 +1,373 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link id="faviconTag" rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>⏱️</text></svg>">
+<title>Flowstate – Pomodoro Timer</title>
+<link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+<div class="wrap">
+  <p class="eyebrow" style="display:none;"></p>
+  <h1>Flowstate – Pomodoro Timer</h1>
+
+  <div id="setupCard" class="setup">
+    <p style="margin:0 0 10px; font-size:15px; color:var(--text-dim);">Set your focus and break intervals.</p>
+    <div class="inputs-wrap">
+      <div class="input-group">
+        <label for="focusDur">Focus (min)</label>
+        <input type="number" id="focusDur" value="25" min="1">
+      </div>
+      <div class="input-group">
+        <label for="shortBreakDur">Break (min)</label>
+        <input type="number" id="shortBreakDur" value="5" min="1">
+      </div>
+      <div class="input-group">
+        <label for="dailyGoalInput">Daily Goal (hrs)</label>
+        <input type="number" id="dailyGoalInput" value="2" min="0.5" max="16" step="0.5">
+      </div>
+    </div>
+    <div class="input-group" style="width: 100%; max-width: 340px; margin: 16px auto 0;">
+      <label for="taskInput">Goals / Tasks (separate with commas)</label>
+      <input type="text" id="taskInput" placeholder="e.g. Read chapter, solve problems, review..." maxlength="250">
+    </div>
+    <div style="margin-top:24px;">
+      <button class="btn-primary" id="beginBtn">Start session</button>
+    </div>
+  </div>
+
+  <div id="stageCard" class="stage focus" style="display:none;">
+    <span class="phase-label" id="phaseLabel">01 Focus</span>
+    <p class="clock" id="clock">25:00</p>
+    <p class="subtext" id="subtext">Heads down. Break right after.</p>
+    <div class="controls">
+      <button class="btn-primary" id="playPauseBtn">Pause</button>
+      <button class="btn-ghost" id="skipBtn">Skip</button>
+      <button class="btn-ghost" id="resetBtn">Reset</button>
+    </div>
+    <div class="progress" id="progressDots"></div>
+    <div class="meta-row">
+      <span id="doneCount">0 focus rounds completed</span>
+      <span id="clockTime"></span>
+    </div>
+  </div>
+</div>
+
+<div class="left-sidebar" id="leftSidebar">
+  <div id="statsPanel" class="stats-panel">
+    <div class="panel-header-row">
+      <h3>Focus Stats</h3>
+      <button class="panel-toggle-btn" id="statsToggleBtn" title="Toggle compact size">−</button>
+    </div>
+    <div class="stats-content" id="statsContent">
+      <div class="stats-rows">
+        <div class="stats-row">
+          <span class="stats-label">Today</span>
+          <span class="stats-val highlight" id="statsToday">0h 0m</span>
+        </div>
+        <div class="stats-row">
+          <span class="stats-label">This Week</span>
+          <span class="stats-val" id="statsWeek">0h 0m</span>
+        </div>
+        <div class="stats-row">
+          <span class="stats-label">This Month</span>
+          <span class="stats-val" id="statsMonth">0h 0m</span>
+        </div>
+      </div>
+      <div class="stats-streak" id="statsStreakWrap">
+        <span class="streak-icon">🔥</span>
+        <span class="streak-count" id="statsStreak">1 Day Streak</span>
+      </div>
+      <div class="goal-wrap">
+        <div class="goal-header">
+          <span>Daily Goal</span>
+          <span class="goal-val" id="goalPercent">0%</span>
+        </div>
+        <div class="goal-bar-bg">
+          <div class="goal-bar-fill" id="goalBarFill"></div>
+        </div>
+        <div class="goal-sub" id="goalSub">0m / 2h 00m</div>
+      </div>
+      <div class="stats-chart" id="statsChart"></div>
+    </div>
+  </div>
+
+  <div class="tools-panel" id="toolsPanel">
+    <div class="panel-header-row">
+      <span class="panel-title">🎧 Ambient Sound</span>
+      <button class="panel-toggle-btn" id="toolsToggleBtn" title="Toggle compact size">−</button>
+    </div>
+    <div class="tools-content" id="toolsContent">
+      <div class="ambient-bar" id="ambientBar">
+        <div class="ambient-row">
+          <span>Sound</span>
+          <select id="ambientSoundSelect" title="Select ambient sound">
+            <option value="none">Off</option>
+            <option value="rain">🌧️ Gentle Rain</option>
+            <option value="fire">🔥 Crackling Fireplace</option>
+            <option value="cafe">☕ Café Murmurs</option>
+            <option value="waves">🌊 Ocean Waves</option>
+            <option value="brown">🍂 Forest Breeze</option>
+            <option value="pink">🌸 Pink Noise</option>
+          </select>
+        </div>
+        <div class="ambient-vol-row">
+          <span>Vol</span>
+          <input type="range" id="ambientVolInput" min="0" max="1" step="0.05" value="0.5" title="Ambient volume">
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="right-sidebar" id="rightSidebar">
+  <div id="tasksPanel" class="tasks-panel">
+    <div class="panel-header-row">
+      <span class="panel-title">🎯 Tasks & Goals</span>
+      <button class="panel-toggle-btn" id="tasksToggleBtn" title="Toggle compact size">−</button>
+    </div>
+    <div class="tasks-content" id="tasksContent">
+      <div class="goals-list" id="goalsList"></div>
+      <div class="tasks-empty-hint" id="tasksEmptyHint">No active tasks. Add goals in setup or below!</div>
+      <div class="tasks-add-row">
+        <input type="text" id="quickTaskInput" placeholder="+ Add goal (Enter)..." maxlength="100">
+      </div>
+    </div>
+  </div>
+
+  <div id="leaderboardPanel" class="leaderboard-panel">
+    <div class="panel-header-row">
+      <span class="panel-title">🏆 Leaderboard</span>
+      <button class="panel-toggle-btn" id="leaderboardToggleBtn" title="Toggle compact size">−</button>
+    </div>
+    <div class="leaderboard-content" id="leaderboardContent">
+      <div class="lb-filter-row">
+        <button type="button" class="lb-filter-btn active" data-period="daily" id="lbBtnDaily">Daily</button>
+        <button type="button" class="lb-filter-btn" data-period="weekly" id="lbBtnWeekly">Weekly</button>
+        <button type="button" class="lb-filter-btn" data-period="alltime" id="lbBtnAlltime">All-Time</button>
+      </div>
+      <div class="lb-list" id="lbList"></div>
+    </div>
+  </div>
+</div>
+
+<div class="pet-companion" id="petCompanion">
+  <div class="pet-bubble" id="petBubble" title="Click to resize / toggle quote">staying cozy...</div>
+  <img id="petImg" src="assets/cats/idle.png" alt="Cat Companion" title="Click to interact with cat">
+</div>
+
+<button class="settings-btn" id="settingsBtn" title="Preferences & Display Settings">⚙️</button>
+
+<div class="settings-menu" id="settingsMenu" style="display: none;">
+  <div class="settings-header">
+    <span>Preferences</span>
+    <button class="settings-close-btn" id="settingsCloseBtn" title="Close">✕</button>
+  </div>
+
+  <div class="settings-tabs">
+    <button type="button" class="settings-tab active" data-tab="general">⚙️ General</button>
+    <button type="button" class="settings-tab" data-tab="account">👤 Account</button>
+    <button type="button" class="settings-tab" data-tab="privacy">🔒 Privacy</button>
+  </div>
+
+  <div class="settings-list">
+    <!-- GENERAL TAB CONTENT -->
+    <div class="settings-tab-content active" id="tabGeneral">
+      <div class="settings-section-title">Appearance & Theme</div>
+      <div class="settings-item">
+        <span class="settings-label" id="themeLabel">🌙 Dark Theme</span>
+        <label class="toggle-switch">
+          <input type="checkbox" id="toggleThemeSetting">
+          <span class="toggle-slider"></span>
+        </label>
+      </div>
+
+      <div class="settings-item">
+        <span class="settings-label">🎨 Accent Color</span>
+        <div class="color-picker-row" id="colorPickerRow">
+          <button type="button" class="color-circle color-default active" data-color="default" onclick="applyAccentColor('default')" title="Default Red/Coral"></button>
+          <button type="button" class="color-circle color-blue" data-color="blue" onclick="applyAccentColor('blue')" title="Ocean Blue"></button>
+          <button type="button" class="color-circle color-green" data-color="green" onclick="applyAccentColor('green')" title="Emerald Green"></button>
+          <button type="button" class="color-circle color-purple" data-color="purple" onclick="applyAccentColor('purple')" title="Royal Purple"></button>
+        </div>
+      </div>
+
+      <div class="settings-divider"></div>
+      <div class="settings-section-title">Timer Automation</div>
+
+      <div class="settings-item">
+        <span class="settings-label">☕ Auto-start Breaks</span>
+        <label class="toggle-switch">
+          <input type="checkbox" id="toggleAutoStartBreaksSetting">
+          <span class="toggle-slider"></span>
+        </label>
+      </div>
+
+      <div class="settings-item">
+        <span class="settings-label">⚡ Auto-start Focus</span>
+        <label class="toggle-switch">
+          <input type="checkbox" id="toggleAutoStartFocusSetting">
+          <span class="toggle-slider"></span>
+        </label>
+      </div>
+
+      <div class="settings-divider"></div>
+      <div class="settings-section-title">Modes & Tools</div>
+
+      <div class="settings-item">
+        <span class="settings-label">🧘 Zen Mode</span>
+        <label class="toggle-switch">
+          <input type="checkbox" id="toggleZenSetting">
+          <span class="toggle-slider"></span>
+        </label>
+      </div>
+
+      <div class="settings-item">
+        <span class="settings-label">📌 Mini Float</span>
+        <button class="settings-btn-action" id="pipBtn" title="Floating Picture-in-Picture window">
+          <span>Launch</span> ↗
+        </button>
+      </div>
+
+      <div class="settings-divider"></div>
+      <div class="settings-section-title">Display Widgets</div>
+
+      <div class="settings-item">
+        <span class="settings-label">🎯 Tasks & Goals</span>
+        <label class="toggle-switch">
+          <input type="checkbox" id="toggleTasksSetting" checked>
+          <span class="toggle-slider"></span>
+        </label>
+      </div>
+
+      <div class="settings-item">
+        <span class="settings-label">🏆 Leaderboard</span>
+        <label class="toggle-switch">
+          <input type="checkbox" id="toggleLeaderboardSetting" checked>
+          <span class="toggle-slider"></span>
+        </label>
+      </div>
+
+      <div class="settings-item">
+        <span class="settings-label">🐾 Cat Companion</span>
+        <label class="toggle-switch">
+          <input type="checkbox" id="togglePetSetting" checked>
+          <span class="toggle-slider"></span>
+        </label>
+      </div>
+
+      <div class="settings-item">
+        <span class="settings-label">💬 Speech Bubble</span>
+        <label class="toggle-switch">
+          <input type="checkbox" id="toggleBubbleSetting" checked>
+          <span class="toggle-slider"></span>
+        </label>
+      </div>
+
+      <div class="settings-item">
+        <span class="settings-label">📊 Focus Stats</span>
+        <label class="toggle-switch">
+          <input type="checkbox" id="toggleStatsSetting" checked>
+          <span class="toggle-slider"></span>
+        </label>
+      </div>
+
+      <div class="settings-item">
+        <span class="settings-label">🎧 Ambient Audio</span>
+        <label class="toggle-switch">
+          <input type="checkbox" id="toggleToolsSetting" checked>
+          <span class="toggle-slider"></span>
+        </label>
+      </div>
+
+      <div class="settings-divider"></div>
+      <div class="settings-section-title">Sound & Voice</div>
+
+      <div class="settings-item">
+        <span class="settings-label">🔔 Alarm & Bell Chime</span>
+        <label class="toggle-switch">
+          <input type="checkbox" id="toggleSoundSetting" checked>
+          <span class="toggle-slider"></span>
+        </label>
+      </div>
+
+      <div class="settings-item">
+        <span class="settings-label">🗣️ Text to Speech</span>
+        <label class="toggle-switch">
+          <input type="checkbox" id="toggleTtsSetting">
+          <span class="toggle-slider"></span>
+        </label>
+      </div>
+    </div>
+
+    <!-- ACCOUNT TAB CONTENT -->
+    <div class="settings-tab-content" id="tabAccount">
+      <div class="account-box">
+        <div class="account-profile-row">
+          <div class="account-avatar">🐱</div>
+          <div class="account-info">
+            <span class="account-name" id="accountDisplayName">Guest Focus Scholar</span>
+            <span class="account-status" id="accountStatusText">Local Session · Not Synced</span>
+          </div>
+        </div>
+        <div class="account-btn-group">
+          <button type="button" class="account-btn primary" id="googleSignInBtn">
+            <span>🌐</span> Sign In with Google
+          </button>
+          <button type="button" class="account-btn" id="emailSignInBtn">
+            <span>✉️</span> Sign In with Email
+          </button>
+          <button type="button" class="account-btn" id="cloudSyncBtn">
+            <span>🔄</span> Sync Data to Cloudflare D1
+          </button>
+          <button type="button" class="account-btn danger" id="signOutBtn" style="display: none;">
+            <span>🚪</span> Sign Out
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- PRIVACY TAB CONTENT -->
+    <div class="settings-tab-content" id="tabPrivacy">
+      <div class="settings-section-title">Public Leaderboard & Privacy</div>
+
+      <div class="settings-item">
+        <span class="settings-label">🏆 List Me on Public Leaderboard</span>
+        <label class="toggle-switch">
+          <input type="checkbox" id="togglePublicLbSetting" checked>
+          <span class="toggle-slider"></span>
+        </label>
+      </div>
+
+      <div class="settings-item">
+        <span class="settings-label">📊 Share Anonymous Stats</span>
+        <label class="toggle-switch">
+          <input type="checkbox" id="toggleAnonStatsSetting">
+          <span class="toggle-slider"></span>
+        </label>
+      </div>
+
+      <div class="settings-divider"></div>
+      <div class="settings-section-title">Data Storage</div>
+
+      <div class="account-btn-group" style="margin-top: 4px;">
+        <button type="button" class="account-btn danger" id="clearDataBtn">
+          <span>🗑️</span> Clear Local Focus History
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<canvas id="confettiCanvas" style="position:fixed;top:0;left:0;width:100vw;height:100vh;pointer-events:none;z-index:99999;display:none;"></canvas>
+<div class="zen-exit-hint" id="zenExitBtn">✕ Exit Zen Mode (Esc)</div>
+<canvas id="pipCanvas" width="180" height="180" style="display:none;"></canvas>
+<video id="pipVideo" muted autoplay playsinline style="display:none;"></video>
+
+<script src="js/companion.js"></script>
+<script src="js/audio.js"></script>
+<script src="js/leaderboard.js"></script>
+<script src="js/timer.js"></script>
+</body>
+</html>
