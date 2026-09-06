@@ -1,0 +1,9 @@
+_worker.js
+schema.sql
+server.js
+package.json
+package-lock.json
+wrangler.json
+.env*
+.git*
+node_modules/
