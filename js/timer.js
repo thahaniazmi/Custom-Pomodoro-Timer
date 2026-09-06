@@ -6,7 +6,8 @@ var currentTaskName = '';
 var soundEnabled = localStorage.getItem('pomodoro_sound_enabled') !== 'false';
 var ttsEnabled = localStorage.getItem('pomodoro_tts_enabled') === 'true';
 var pauseOnClose = true; // Tab close always pauses timer (bug fix)
-var autoStartBreaks = localStorage.getItem('pomodoro_autostart_breaks') === 'true';
+var autoStartBreaks = false; // Breaks never auto-start to prevent cheating (bug fix)
+try { localStorage.removeItem('pomodoro_autostart_breaks'); } catch (e) {}
 var autoStartFocus = localStorage.getItem('pomodoro_autostart_focus') === 'true';
 
 function buildPlan(startMinutes, focusMin, shortBreakMin) {
@@ -449,7 +450,6 @@ function openSettings() {
   var toggleToolsSetting = document.getElementById('toggleToolsSetting');
   var toggleSoundSetting = document.getElementById('toggleSoundSetting');
   var toggleTtsSetting = document.getElementById('toggleTtsSetting');
-  var toggleAutoStartBreaksSetting = document.getElementById('toggleAutoStartBreaksSetting');
   var toggleAutoStartFocusSetting = document.getElementById('toggleAutoStartFocusSetting');
   var togglePublicLbSetting = document.getElementById('togglePublicLbSetting');
   var toggleAnonStatsSetting = document.getElementById('toggleAnonStatsSetting');
@@ -475,7 +475,6 @@ function openSettings() {
     if (toggleToolsSetting && toolsPanel) toggleToolsSetting.checked = toolsPanel.style.display !== 'none';
     if (toggleSoundSetting) toggleSoundSetting.checked = soundEnabled;
     if (toggleTtsSetting) toggleTtsSetting.checked = ttsEnabled;
-    if (toggleAutoStartBreaksSetting) toggleAutoStartBreaksSetting.checked = autoStartBreaks;
     if (toggleAutoStartFocusSetting) toggleAutoStartFocusSetting.checked = autoStartFocus;
     if (togglePublicLbSetting) togglePublicLbSetting.checked = (typeof publicLeaderboardEnabled !== 'undefined' ? publicLeaderboardEnabled : true);
     if (toggleAnonStatsSetting) toggleAnonStatsSetting.checked = (typeof anonStatsEnabled !== 'undefined' ? anonStatsEnabled : false);
@@ -601,7 +600,7 @@ function advance(announce) {
   }
 
   var playPauseBtn = document.getElementById('playPauseBtn');
-  var shouldAutoStart = (p.type === 'break' && autoStartBreaks) || (p.type === 'focus' && autoStartFocus);
+  var shouldAutoStart = (p.type === 'focus' && autoStartFocus); // Breaks never auto-start to prevent cheating (bug fix)
 
   if (shouldAutoStart) {
     running = true;
@@ -728,7 +727,7 @@ function restoreSessionState() {
         }
         index++;
         var nextType = plan[index] ? plan[index].type : 'focus';
-        var canAuto = (nextType === 'break' && autoStartBreaks) || (nextType === 'focus' && autoStartFocus);
+        var canAuto = (nextType === 'focus' && autoStartFocus); // Breaks never auto-start to prevent cheating (bug fix)
         if (!canAuto) {
           diffSecs = plan[index].duration * 60;
           running = false;
@@ -1175,15 +1174,6 @@ document.addEventListener('DOMContentLoaded', function() {
     toggleTtsSetting.addEventListener('change', function() {
       ttsEnabled = toggleTtsSetting.checked;
       localStorage.setItem('pomodoro_tts_enabled', ttsEnabled);
-    });
-  }
-
-  var toggleAutoStartBreaksSetting = document.getElementById('toggleAutoStartBreaksSetting');
-  if (toggleAutoStartBreaksSetting) {
-    toggleAutoStartBreaksSetting.checked = autoStartBreaks;
-    toggleAutoStartBreaksSetting.addEventListener('change', function() {
-      autoStartBreaks = toggleAutoStartBreaksSetting.checked;
-      localStorage.setItem('pomodoro_autostart_breaks', autoStartBreaks);
     });
   }
 
